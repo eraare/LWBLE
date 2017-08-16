@@ -15,10 +15,18 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.eraare.ble.OnStateChangedListener.STATE_CONNECTED;
+import static com.eraare.ble.OnStateChangedListener.STATE_CONNECTING;
+import static com.eraare.ble.OnStateChangedListener.STATE_DISCONNECTED;
+import static com.eraare.ble.OnStateChangedListener.STATE_DISCONNECTING;
+import static com.eraare.ble.OnStateChangedListener.STATE_INITIAL;
+import static com.eraare.ble.OnStateChangedListener.STATE_SERVICING;
 
 /**
  * @file BLECenter.java
@@ -38,21 +46,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public final class BLECenter {
     private static final String TAG = BLECenter.class.getSimpleName();
-
-    //服务所用的UUID
-    private static final UUID UUID_SERVICE = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
-    //特征所用的UUID
-    private static final UUID UUID_CHARACTERISTIC = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
-    //描述所用的UUID
-    private static final UUID UUID_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-
-    /*连接断开状态码*/
-    public static final int STATE_INITIAL = -1;
-    public static final int STATE_CONNECTING = 1;
-    public static final int STATE_CONNECTED = 2;
-    public static final int STATE_DISCONNECTING = 3;
-    public static final int STATE_DISCONNECTED = 4;
-    public static final int STATE_SERVICING = 5;
 
     private volatile static BLECenter singleton = null;
 
@@ -153,14 +146,18 @@ public final class BLECenter {
     };
 
     private void sendState(String address, int state) {
-        if (mStateListener != null) {
-            mStateListener.onStateChanged(address, state);
+        if (mStateListeners != null) {
+            for (OnStateChangedListener listener : mStateListeners) {
+                listener.onStateChanged(address, state);
+            }
         }
     }
 
     private void sendData(String address, byte[] data) {
-        if (mDataListener != null) {
-            mDataListener.onDataReceived(address, data);
+        if (mDataListeners != null) {
+            for (OnDataReceivedListener listener : mDataListeners) {
+                listener.onDataReceived(address, data);
+            }
         }
     }
 
@@ -181,7 +178,7 @@ public final class BLECenter {
         }
         /*设置属性并通知*/
         gatt.setCharacteristicNotification(characteristic, enabled);
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(BLEUUID.UUID_DESCRIPTOR);
         // 查看是否带有可通知属性notify 查看是否带有indecation属性
         if (0 != (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY)) {
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
@@ -198,11 +195,11 @@ public final class BLECenter {
      * @return
      */
     private BluetoothGattCharacteristic getCharacteristic(BluetoothGatt gatt) {
-        BluetoothGattService bluetoothGattService = gatt.getService(UUID_SERVICE);
+        BluetoothGattService bluetoothGattService = gatt.getService(BLEUUID.UUID_SERVICE);
         if (bluetoothGattService == null) {
             return null;
         }
-        return bluetoothGattService.getCharacteristic(UUID_CHARACTERISTIC);
+        return bluetoothGattService.getCharacteristic(BLEUUID.UUID_CHARACTERISTIC);
     }
 
     /**
@@ -269,30 +266,29 @@ public final class BLECenter {
     }
 
     /*Section: 状态回掉接口*/
+    private List<OnStateChangedListener> mStateListeners;
 
-    /**
-     * 状态回调接口
-     */
-    public interface OnStateChangedListener {
-        void onStateChanged(String address, int state);
+    private List<OnDataReceivedListener> mDataListeners;
+
+    public void addOnStateChangedListener(OnStateChangedListener onStateChangedListener) {
+        if (mStateListeners == null) {
+            mStateListeners = new CopyOnWriteArrayList<>();
+        }
+        mStateListeners.add(onStateChangedListener);
     }
 
-    /**
-     * 数据回调接口
-     */
-    public interface OnDataReceivedListener {
-        void onDataReceived(String address, byte[] data);
+    public void addOnDataReceivedListener(OnDataReceivedListener onDataReceivedListener) {
+        if (mDataListeners == null) {
+            mDataListeners = new CopyOnWriteArrayList<>();
+        }
+        mDataListeners.add(onDataReceivedListener);
     }
 
-    private OnStateChangedListener mStateListener;
-
-    private OnDataReceivedListener mDataListener;
-
-    public void setOnStateChangedListener(OnStateChangedListener onStateChangedListener) {
-        this.mStateListener = onStateChangedListener;
+    public boolean removeOnStateChangedListener(OnStateChangedListener onStateChangedListener) {
+        return mStateListeners.remove(onStateChangedListener);
     }
 
-    public void setOnDataReceivedListener(OnDataReceivedListener onDataReceivedListener) {
-        this.mDataListener = onDataReceivedListener;
+    public boolean removeOnDataReceivedListener(OnDataReceivedListener onDataReceivedListener) {
+        return mDataListeners.remove(onDataReceivedListener);
     }
 }

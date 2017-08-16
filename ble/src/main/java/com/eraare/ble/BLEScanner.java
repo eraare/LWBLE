@@ -21,10 +21,7 @@ public final class BLEScanner {
     private Handler mHandler = new Handler();// 用于postDelay
     private boolean mScanning = false;// 循环标志位
     private long mDuration = DEFAULT_SCAN_PERIOD;
-    /**
-     * 扫描到的设备的回调接口
-     */
-    private DeviceCallback mDeviceCallback;
+
     /**
      * 扫描蓝牙BLE设备的回掉函数
      */
@@ -32,23 +29,19 @@ public final class BLEScanner {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] bytes) {
             System.out.println(bluetoothDevice.getName());
-            if (mDeviceCallback != null) {
-                mDeviceCallback.onDeviceDiscovered(bluetoothDevice, rssi, bytes);
+            if (mCallback != null) {
+                mCallback.onDeviceDiscovered(bluetoothDevice, rssi, bytes);
             }
         }
     };
     /*Section: 设备扫描*/
-    /**
-     * 扫描到的设备的回调接口
-     */
-    private StateCallback mStateCallback;
     private Runnable mRunnable = new Runnable() {
         @Override
         public void run() {
             mScanning = false;
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
             /*扫描状态回调出去*/
-            if (mStateCallback != null) mStateCallback.onStateChanged(mScanning);
+            if (mCallback != null) mCallback.onStateChanged(mScanning);
         }
     };
 
@@ -83,16 +76,7 @@ public final class BLEScanner {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
         /*扫描状态回调出去*/
-        if (mStateCallback != null) mStateCallback.onStateChanged(mScanning);
-    }
-
-    /*设置接收器*/
-    public void setDeviceCallback(DeviceCallback deviceCallback) {
-        this.mDeviceCallback = deviceCallback;
-    }
-
-    public void setStateCallback(StateCallback stateCallback) {
-        this.mStateCallback = stateCallback;
+        if (mCallback != null) mCallback.onStateChanged(mScanning);
     }
 
     /**
@@ -116,11 +100,15 @@ public final class BLEScanner {
         scanLeDevice(false);
     }
 
-    public interface DeviceCallback {
+    public interface Callback {
+        void onStateChanged(boolean scanning);
+
         void onDeviceDiscovered(BluetoothDevice device, int rssi, byte[] bytes);
     }
 
-    public interface StateCallback {
-        void onStateChanged(boolean scanning);
+    private Callback mCallback;
+
+    public void setCallback(Callback callback) {
+        this.mCallback = callback;
     }
 }
