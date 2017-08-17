@@ -20,7 +20,7 @@ import java.util.Map;
  * @class PermissionManager
  * @date 2016-3-25 下午3:54:14
  */
-public class PermissionManager {
+public final class PermissionManager {
 
     private Object mObject;
     private String[] mPermissions;

@@ -8,11 +8,25 @@ import java.util.UUID;
  * @since 2017-08-16
  * UUID
  */
-public class BLEUUID {
-    //服务所用的UUID
-    public static final UUID UUID_SERVICE = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
-    //特征所用的UUID
-    public static final UUID UUID_CHARACTERISTIC = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
-    //描述所用的UUID
-    public static final UUID UUID_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+public interface BLEUUID {
+    /**
+     * 服务所用的UUID
+     *
+     * @return
+     */
+    UUID getServiceUUID();
+
+    /**
+     * 可读可写可通知特征的UUID
+     *
+     * @return
+     */
+    UUID getCharacteristicUUID();
+
+    /**
+     * 上报通知的描述UUID
+     *
+     * @return
+     */
+    UUID getDescriptorUUID();
 }

@@ -63,6 +63,7 @@ public final class BLECenter {
     /*蓝牙适配器和蓝牙GATT*/
     private BluetoothAdapter mBluetoothAdapter;
     private Map<String, BluetoothGatt> mGatts;
+    private BLEUUID mUUID; /*设备读写的UUID*/
 
     private BLECenter() {
         /*初始化数据*/
@@ -73,6 +74,7 @@ public final class BLECenter {
     private void initial() {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mGatts = new ConcurrentHashMap<>();
+        mUUID = new DefaultUUID();
     }
 
     /**
@@ -178,7 +180,7 @@ public final class BLECenter {
         }
         /*设置属性并通知*/
         gatt.setCharacteristicNotification(characteristic, enabled);
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(BLEUUID.UUID_DESCRIPTOR);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(mUUID.getDescriptorUUID());
         // 查看是否带有可通知属性notify 查看是否带有indecation属性
         if (0 != (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY)) {
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
@@ -195,11 +197,20 @@ public final class BLECenter {
      * @return
      */
     private BluetoothGattCharacteristic getCharacteristic(BluetoothGatt gatt) {
-        BluetoothGattService bluetoothGattService = gatt.getService(BLEUUID.UUID_SERVICE);
+        BluetoothGattService bluetoothGattService = gatt.getService(mUUID.getServiceUUID());
         if (bluetoothGattService == null) {
             return null;
         }
-        return bluetoothGattService.getCharacteristic(BLEUUID.UUID_CHARACTERISTIC);
+        return bluetoothGattService.getCharacteristic(mUUID.getCharacteristicUUID());
+    }
+
+    /**
+     * 设置读写通知的UUID
+     *
+     * @param uuid
+     */
+    public void setUUID(BLEUUID uuid) {
+        this.mUUID = uuid;
     }
 
     /**
